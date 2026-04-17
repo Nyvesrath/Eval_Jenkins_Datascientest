@@ -35,15 +35,6 @@ pipeline {
             }
         }
 
-
-        /*stage('Test Acceptance'){ // we launch the curl command to validate that the container responds to the request
-            steps {
-                script {
-                    sh 'curl localhost' //Do some test
-                }
-            }
-        }*/
-
         stage('Docker Push'){ //we pass the built image to our docker hub account
             environment {
                 DOCKER_PASS = credentials("DOCKER_HUB_PASS") // we retrieve  docker password from secret text called docker_hub_pass saved on jenkins
@@ -72,27 +63,10 @@ pipeline {
                     cat $KUBECONFIG > .kube/config
                     cp charts/values.yaml values.yml
                     sed -i "s+tag.*+tag: ${DOCKER_TAG}+g" values.yml
-                    helm upgrade --install app fastapi --values=values.yml --namespace dev
+                    helm upgrade --install app charts --values=values.yml --namespace dev
                     '''
                 }
             }
         }
-        /*stage('Deploiement en staging'){
-            environment {
-                KUBECONFIG = credentials("config") // we retrieve  kubeconfig from secret file called config saved on jenkins
-            }
-            steps {
-                script {
-                    sh '''
-                    rm -Rf .kube
-                    mkdir .kube
-                    cat $KUBECONFIG > .kube/config
-                    cp charts/values.yaml values.yml
-                    sed -i "s+tag.*+tag: ${DOCKER_TAG}+g" values.yml
-                    helm upgrade --install app fastapi --values=values.yml --namespace staging
-                    '''
-                }
-            }
-        }*/
     }
 }
