@@ -14,11 +14,11 @@ pipeline {
                     sh '''
                         docker rm -f jenkins_cast
                         docker rm -f jenkins_movie
-                        
+
                         docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG ./cast-service/
-                        sleep 6
+                        sleep 3
                         docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG ./movie-service/
-                        sleep 6
+                        sleep 3
                     '''
                 }
             }
@@ -29,13 +29,23 @@ pipeline {
                 script {
                     sh '''
                     docker run -d -p 80:80 --name jenkins_cast $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
-                    sleep 5
+                    sleep 3
                     docker run -d -p 80:80 --name jenkins_movie $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
-                    sleep 5
+                    sleep 3
                     '''
                 }
             }
         }
+
+        stage('Test Acceptance'){ // we launch the curl command to validate that the container responds to the request
+            steps {
+                script {
+                    sh 'curl  http://localhost:8080/api/v1/movies/docs '
+                    sh 'curl  http://localhost:8080/api/v1/casts/docs '
+                }
+            }
+        }
+
 
         stage('Docker Push'){ //we pass the built image to our docker hub account
             environment {
