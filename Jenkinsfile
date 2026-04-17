@@ -40,8 +40,17 @@ pipeline {
         stage('Test Acceptance'){ // we launch the curl command to validate that the container responds to the request
             steps {
                 script {
-                    sh 'curl  http://localhost:8080/api/v1/movies/docs '
-                    sh 'curl  http://localhost:8080/api/v1/casts/docs '
+                    sh '''
+                    docker-compose up -d
+
+                    sleep 10
+
+                    curl  http://localhost:8080/api/v1/casts/docs 
+                    curl  http://localhost:8080/api/v1/movies/docs 
+
+                    docker-compose down
+                    '''
+                    
                 }
             }
         }
