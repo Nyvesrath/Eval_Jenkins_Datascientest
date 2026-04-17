@@ -13,9 +13,9 @@ pipeline {
                 script {
                     sh '''
                         docker rm -f jenkins
-                        docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG .
+                        docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG ./cast-service/
                         sleep 6
-                        docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG .
+                        docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG ./movie-service/
                         sleep 6
                     '''
                 }
@@ -27,9 +27,9 @@ pipeline {
                 script {
                     sh '''
                     docker run -d -p 80:80 --name jenkins_cast $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
-                    sleep 10
+                    sleep 5
                     docker run -d -p 80:80 --name jenkins_movie $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
-                    sleep 10
+                    sleep 5
                     '''
                 }
             }
