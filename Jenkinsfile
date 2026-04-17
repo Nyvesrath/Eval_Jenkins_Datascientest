@@ -24,7 +24,7 @@ pipeline {
             }
         }
 
-        stage('Docker run'){ // run container from our built image
+        /*stage('Docker run'){ // run container from our built image
             steps {
                 script {
                     sh '''
@@ -35,12 +35,13 @@ pipeline {
                     '''
                 }
             }
-        }
+        }*/
 
         stage('Test Acceptance'){ // we launch the curl command to validate that the container responds to the request
             steps {
                 script {
                     sh '''
+                    docker-compose down
                     docker-compose up -d
 
                     sleep 10
@@ -48,7 +49,6 @@ pipeline {
                     curl  http://localhost:8080/api/v1/casts/docs 
                     curl  http://localhost:8080/api/v1/movies/docs 
 
-                    docker-compose down
                     '''
                     
                 }
