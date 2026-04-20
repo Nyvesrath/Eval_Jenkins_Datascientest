@@ -100,7 +100,7 @@ pipeline {
                     helm upgrade --install app-movie-staging ./charts --namespace staging \
                         --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_MOVIE \
                         --set image.tag=$DOCKER_TAG \
-                        --set service.nodePort=300835
+                        --set service.nodePort=30085
                         
                     helm upgrade --install app-cast-staging ./charts --namespace staging \
                         --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_CAST \
@@ -130,7 +130,7 @@ pipeline {
                     helm upgrade --install app-movie-prod ./charts --namespace prod \
                         --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_MOVIE \
                         --set image.tag=$DOCKER_TAG \
-                        --set service.nodePort=300837
+                        --set service.nodePort=30087
                         
                     helm upgrade --install app-cast-prod ./charts --namespace prod \
                         --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_CAST \
