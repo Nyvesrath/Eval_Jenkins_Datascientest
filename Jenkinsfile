@@ -1,20 +1,17 @@
 pipeline {
-    environment { // Declaration of environment variables
-        DOCKER_ID = "nyvesrath" // replace this with your docker-id
+    environment {
+        DOCKER_ID = "nyvesrath" 
         DOCKER_IMAGE_CAST = "evaljenkinscast"
         DOCKER_IMAGE_MOVIE = "evaljenkinsmovie"
-        DOCKER_TAG = "v.${BUILD_ID}.0" // we will tag our images with the current build in order to increment the value by 1 with each new build
+        DOCKER_TAG = "v.${BUILD_ID}.0"
     }
 
-    agent any // Jenkins will be able to select all available agents
+    agent any
     stages {
-        stage('Docker Build'){ // docker build image stage
+        stage('Docker Build'){ 
             steps {
                 script {
                     sh '''
-                        docker rm -f jenkins_cast
-                        docker rm -f jenkins_movie
-
                         docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG ./cast-service/
                         sleep 3
                         docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG ./movie-service/
@@ -24,9 +21,9 @@ pipeline {
             }
         }
 
-        stage('Docker Push'){ //we pass the built image to our docker hub account
+        stage('Docker Push'){ 
             environment {
-                DOCKER_PASS = credentials("DOCKER_HUB_PASS") // we retrieve  docker password from secret text called docker_hub_pass saved on jenkins
+                DOCKER_PASS = credentials("DOCKER_HUB_PASS")
             }
             steps {
                 script {
@@ -34,6 +31,8 @@ pipeline {
                     docker login -u $DOCKER_ID -p $DOCKER_PASS
                     docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:$DOCKER_TAG
                     docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:$DOCKER_TAG
+
+                    sleep 3
                     '''
                 }
             }
@@ -42,7 +41,7 @@ pipeline {
         //----------------------------------- Deploiement -----------------------------------
         stage('Deploiement en dev'){
             environment {
-                KUBECONFIG = credentials("config") // we retrieve  kubeconfig from secret file called config saved on jenkins
+                KUBECONFIG = credentials("config") 
             }
             steps {
                 script {
@@ -54,11 +53,89 @@ pipeline {
                         --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_MOVIE \
                         --set image.tag=$DOCKER_TAG \
                         --set service.nodePort=30081
-                        
+
                     helm upgrade --install app-cast-dev ./charts --namespace dev \
                         --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_CAST \
                         --set image.tag=$DOCKER_TAG \
                         --set service.nodePort=30082
+                    '''
+                }
+            }
+        }
+
+        stage('Deploiement en QA'){
+            environment {
+                KUBECONFIG = credentials("config")
+            }
+            steps {
+                script {
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    cat $KUBECONFIG > .kube/config
+                    helm upgrade --install app-movie-qa ./charts --namespace qa \
+                        --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_MOVIE \
+                        --set image.tag=$DOCKER_TAG \
+                        --set service.nodePort=30083
+                        
+                    helm upgrade --install app-cast-qa ./charts --namespace qa \
+                        --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_CAST \
+                        --set image.tag=$DOCKER_TAG \
+                        --set service.nodePort=30084
+                    '''
+                }
+            }
+        }
+
+        stage('Deploiement en staging'){
+            environment {
+                KUBECONFIG = credentials("config")
+            }
+            steps {
+                script {
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    cat $KUBECONFIG > .kube/config
+                    helm upgrade --install app-movie-staging ./charts --namespace staging \
+                        --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_MOVIE \
+                        --set image.tag=$DOCKER_TAG \
+                        --set service.nodePort=300835
+                        
+                    helm upgrade --install app-cast-staging ./charts --namespace staging \
+                        --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_CAST \
+                        --set image.tag=$DOCKER_TAG \
+                        --set service.nodePort=30086
+                    '''
+                }
+            }
+        }
+
+        stage('Deploiement en production'){
+            when {
+                branch 'master'
+            }
+            environment {
+                KUBECONFIG = credentials("config")
+            }
+            steps {
+                timeout(time: 15, unit: "MINUTES") {
+                    input message: 'Do you want to deploy in production ?', ok: 'Yes'
+                }
+                script {
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    cat $KUBECONFIG > .kube/config
+                    helm upgrade --install app-movie-prod ./charts --namespace prod \
+                        --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_MOVIE \
+                        --set image.tag=$DOCKER_TAG \
+                        --set service.nodePort=300837
+                        
+                    helm upgrade --install app-cast-prod ./charts --namespace prod \
+                        --set image.repository=$DOCKER_ID/$DOCKER_IMAGE_CAST \
+                        --set image.tag=$DOCKER_TAG \
+                        --set service.nodePort=30088
                     '''
                 }
             }
